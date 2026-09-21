@@ -1,0 +1,16 @@
+/* Preview-only additions: version switch in the top bar and the cover buttons that replace the KUSU login. */
+.versions { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.topbar .versions a { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); font-size: 13px; line-height: 1.6; white-space: nowrap; }
+.topbar .versions a:hover { border-color: var(--gold); }
+.topbar .versions a[aria-current="page"] { border-color: var(--gold); background: #34291b; color: var(--gold); font-weight: 800; }
+.topbar #reset { white-space: nowrap; }
+.preview-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 10px; }
+.preview-actions .primary { font-size: 17px; padding: 11px 26px; }
+
+@media (max-width: 720px) {
+    body:not(.teacher) .topbar { flex-wrap: wrap; padding: 6px 8px; }
+    .topbar > strong { flex: 1 1 auto; }
+    .topbar #identity { display: none; }
+    .versions { order: 3; width: 100%; }
+    .topbar .versions a { padding: 1px 8px; font-size: 12px; }
+}

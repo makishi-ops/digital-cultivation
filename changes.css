@@ -1,0 +1,27 @@
+/* The wording comparison page. */
+main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.doc { min-width: 0; padding: 20px 24px; border: 1px solid #3d4652; border-radius: 18px; background: var(--panel); line-height: 1.75; }
+.doc h1 { margin: 0 0 10px; font-size: 28px; }
+.doc h2 { margin: 0 0 8px; color: var(--gold); font-size: 20px; }
+.doc p { margin: 6px 0; }
+.doc table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+.doc th { position: static; padding: 8px 10px; border-bottom: 2px solid var(--line); background: transparent; text-align: left; white-space: nowrap; }
+.doc td { padding: 9px 10px; border-bottom: 1px solid #333b46; vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.doc td:nth-child(1) { width: 24%; color: var(--muted); }
+.doc td:nth-child(2), .doc td:nth-child(3) { width: 22%; }
+.doc small { color: var(--muted); }
+del { color: #f0a49b; background: rgba(219, 118, 108, .18); text-decoration-thickness: 2px; }
+ins { color: #9fe6c9; background: rgba(101, 199, 162, .18); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.doc ul { margin: 6px 0; padding-left: 1.3em; }
+.doc li { margin: 4px 0; }
+.foot { margin: 4px 0 0; color: var(--muted); font-size: 13px; text-align: center; }
+
+@media (max-width: 720px) {
+    .doc { padding: 16px; }
+    .doc h1 { font-size: 23px; }
+    .doc thead { display: none; }
+    .doc table, .doc tbody, .doc tr, .doc td { display: block; width: auto !important; }
+    .doc tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .doc td { padding: 2px 0; border: 0; }
+    .doc td::before { content: attr(data-label) "："; color: var(--gold); font-size: 13px; font-weight: 800; }
+}

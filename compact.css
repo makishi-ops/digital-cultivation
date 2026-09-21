@@ -1,0 +1,70 @@
+/* Reading-first layout: compact chrome, natural page flow, no clipped content. */
+body:not(.teacher) .shell { width: min(1200px, calc(100% - 24px)); margin-bottom: 24px; }
+body:not(.teacher) .topbar { min-height: 46px; padding: 2px 12px; gap: 12px; }
+body:not(.teacher) #sync { margin: 5px 0 8px; padding: 4px 10px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+body:not(.teacher) #app { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; }
+body:not(.teacher) #app > :not(.progress):not(.review) { grid-column: 1 / -1; width: 100%; min-width: 0; }
+body:not(.teacher) .progress { margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 14px; }
+body:not(.teacher) .progress > div:first-child { gap: 10px; flex-direction: row; align-items: center; }
+body:not(.teacher) .bar { height: 5px; margin: 6px 0 0; }
+body:not(.teacher) .review { margin: 0; font-size: 14px; }
+body:not(.teacher) .review select { width: min(260px, 26vw); padding: 5px 8px; }
+body:not(.teacher) .reader { max-width: 1120px; padding: 18px 24px; border-radius: 16px; }
+body:not(.teacher) .reader > .eyebrow { margin-bottom: 5px; font-size: 12px; }
+body:not(.teacher) .reader h1 { font-size: clamp(25px, 2.5vw, 32px); line-height: 1.25; margin: 0 0 10px; }
+body:not(.teacher) .reader .narrative { max-width: none; font-size: 18px; line-height: 1.65; margin: 0 0 12px; }
+body:not(.teacher) .reading-phases { margin: 0 0 12px; gap: 6px; font-size: 14px; }
+body:not(.teacher) .reading-phases li { padding: 6px 3px; }
+body:not(.teacher) .reader .truth, body:not(.teacher) .reader .metaphor { margin: 10px 0; padding: 10px 14px; border-radius: 10px; }
+body:not(.teacher) .reader .truth p, body:not(.teacher) .reader .metaphor p { margin: 5px 0 0; line-height: 1.6; }
+body:not(.teacher) .worked-example { padding: 10px 14px; border-radius: 10px; }
+body:not(.teacher) .worked-example p, body:not(.teacher) .clue-review p { margin: 5px 0 0; line-height: 1.65; }
+body:not(.teacher) .clue-review { padding: 7px 12px; }
+body:not(.teacher) .reader .next { margin-top: 12px; }
+body:not(.teacher) .reader .prompt { margin: 12px 0; font-size: 18px; line-height: 1.6; }
+body:not(.teacher) .choices { gap: 8px; }
+body:not(.teacher) .choices button { padding: 10px 12px; line-height: 1.5; }
+body:not(.teacher) button, body:not(.teacher) select { min-height: 44px; }
+body:not(.teacher) .primary, body:not(.teacher) .secondary { padding: 8px 16px; }
+body:not(.teacher) .drag-order { gap: 6px; margin: 8px 0; }
+body:not(.teacher) .drag-order .drag-card { min-height: 48px; padding: 6px 12px; gap: 10px; line-height: 1.5; }
+body:not(.teacher) .instruction { margin: 8px 0; font-size: 14px; line-height: 1.5; }
+body:not(.teacher) #confirm { margin-top: 8px; }
+body:not(.teacher) .assignment { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body:not(.teacher) .assignment fieldset { padding: 8px 12px; }
+body:not(.teacher) .assignment legend { line-height: 1.5; }
+body:not(.teacher) .hint { margin-top: 8px; }
+body:not(.teacher) .feedback { padding: 10px 14px; margin-top: 12px; }
+body:not(.teacher) .feedback p { margin: 6px 0 0; line-height: 1.6; }
+body:not(.teacher) .record { max-width: 1120px; margin: 0 auto; padding: 8px 14px; border-radius: 10px; font-size: 14px; }
+body:not(.teacher) .record p { margin: 6px 0; }
+body:not(.teacher) .reader .scene-art { max-width: 540px; margin: 0 auto 12px; }
+body:not(.teacher) .scene-art figcaption { padding: 6px 12px; }
+body:not(.teacher) .cover { min-height: 0; padding: 28px; gap: 28px; }
+body:not(.teacher) .intro { padding: 24px; }
+body:not(.teacher) .intro .scene-art { max-width: 480px; margin-bottom: 16px; }
+
+@media (min-width: 980px) {
+    /* Two teaching notes share a row; story and action still span full width. */
+    body:not(.teacher) .reader:has(.reading-phases):has(#reveal) { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 10px 14px; }
+    body:not(.teacher) .reader:has(.reading-phases):has(#reveal) > * { grid-column: 1 / -1; margin: 0; }
+    body:not(.teacher) .reader:has(.reading-phases):has(#reveal) > .truth { grid-column: 1; }
+    body:not(.teacher) .reader:has(.reading-phases):has(#reveal) > .worked-example { grid-column: 2; }
+}
+@media (max-width: 720px) {
+    body:not(.teacher) .shell { width: calc(100% - 16px); }
+    body:not(.teacher) .topbar { gap: 4px 8px; padding: 3px 8px; font-size: 13px; }
+    body:not(.teacher) .topbar #identity { order: initial; width: auto; margin-left: auto; max-width: 48%; overflow-wrap: anywhere; }
+    body:not(.teacher) #app { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    body:not(.teacher) .progress { font-size: 13px; }
+    body:not(.teacher) .progress > div:first-child { flex-wrap: wrap; gap: 4px 10px; }
+    body:not(.teacher) .review label { display: flex; align-items: center; gap: 8px; width: 100%; }
+    body:not(.teacher) .review select { width: auto; flex: 1; min-width: 0; }
+    body:not(.teacher) .reader { padding: 14px; }
+    body:not(.teacher) .reader .narrative { font-size: 17px; }
+    body:not(.teacher) .reading-phases { font-size: 13px; }
+    body:not(.teacher) .assignment { grid-template-columns: 1fr; }
+    body:not(.teacher) .cover { padding: 18px; gap: 14px; }
+}
+/* Keep focused controls below the sticky header; large text remains scrollable. */
+body:not(.teacher) :is(button, select, summary, #step-heading) { scroll-margin-top: 90px; }
