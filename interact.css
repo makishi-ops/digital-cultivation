@@ -1,0 +1,61 @@
+/* Interactions added in the revised course: select-then-confirm marks, the stored-program machine, path clicking,
+   multi-bin sorting, the task-manager meter, the system log and the end-of-lesson note. */
+.assignment button.selected::before { content: "✓ "; color: var(--gold); font-weight: 900; }
+.assignment fieldset button { margin: 4px 6px 0 0; padding: 8px 14px; }
+@media (hover: hover) { .assignment button:not(.selected):not(:disabled):hover { border-color: #8a7446; } }
+
+.sim { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; margin: 10px 0; padding: 12px;
+    border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 13, 21, .55); }
+.sim b { color: var(--gold); }
+.sim-memory ol { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+.sim-memory li { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 3px 8px; border: 1px solid #3a4452;
+    border-radius: 8px; background: #121e2b; }
+.sim-memory li.data { background: #152219; }
+.sim-memory li.current { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(233, 189, 98, .35); }
+.sim-memory .addr { min-width: 1.4em; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.sim-memory select { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--gold); border-radius: 6px;
+    background: #2a2114; color: var(--ink); font: inherit; }
+.sim-side { display: grid; gap: 10px; align-content: start; }
+.sim-cpu, .sim-screen { display: grid; gap: 6px; padding: 10px; border: 1px solid #3a4452; border-radius: 10px; background: #111a25; }
+.sim .unit { padding: 3px 8px; border: 1px solid #3a4452; border-radius: 6px; color: var(--muted); }
+.sim .unit.on { border-color: var(--jade); background: rgba(101, 199, 162, .2); color: var(--ink); font-weight: 800; }
+.sim-screen output { min-height: 1.6em; padding: 4px 10px; border-radius: 6px; background: #050a10; color: #9fe6c9;
+    font-size: 22px; font-variant-numeric: tabular-nums; }
+.sim-screen.on { border-color: var(--jade); }
+.sim-log { grid-column: 1 / -1; margin: 0; padding: 8px 10px; border-left: 4px solid var(--jade); border-radius: 6px;
+    background: rgba(10, 17, 27, .85); }
+.sim-buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.path-nodes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.path-nodes button { display: grid; gap: 2px; padding: 10px 8px; border: 1px solid #566171; border-radius: 12px;
+    background: #121e2b; color: var(--ink); text-align: center; }
+.path-nodes small { color: var(--muted); }
+.path-nodes button:active:not(:disabled) { background: #34291b; }
+@media (hover: hover) { .path-nodes button:not(:disabled):hover { border-color: #8a7446; } }
+.path-line { min-height: 1.6em; margin: 6px 0; padding: 8px 12px; border: 1px dashed #566171; border-radius: 10px;
+    color: var(--gold); font-weight: 800; overflow-wrap: anywhere; }
+.path-tools { display: flex; gap: 14px; margin-bottom: 8px; }
+
+.meter { display: grid; gap: 6px; margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #0b121b; }
+.meter div { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 3.2em; align-items: center; gap: 8px; }
+.meter i { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--jade) var(--value), #1d2a38 var(--value)); }
+.meter i.high { background: linear-gradient(90deg, var(--red) var(--value), #1d2a38 var(--value)); }
+.meter b { text-align: right; font-variant-numeric: tabular-nums; }
+
+.syslog { margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #050a10; color: #cfe9dd;
+    font: 14px/1.7 ui-monospace, Consolas, "Noto Sans Mono CJK TC", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.pause-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--gold); border-radius: 12px;
+    background: rgba(131, 92, 31, .22); font-weight: 800; }
+
+@media (max-width: 720px) {
+    /* Phones: keep the lit memory cell, the CPU and the buttons within one screen. */
+    .sim { grid-template-columns: 1fr; gap: 8px; padding: 10px; }
+    .sim-memory ol { grid-template-rows: repeat(4, auto); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+    .sim-memory li { min-height: 32px; padding: 2px 6px; gap: 6px; font-size: 15px; }
+    .sim-memory select { padding: 2px 2px; font-size: 14px; }
+    .sim-side { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; }
+    .sim-cpu, .sim-screen { gap: 4px; padding: 8px; font-size: 14px; }
+    .sim .unit { padding: 2px 6px; }
+    .path-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

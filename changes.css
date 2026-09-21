@@ -25,3 +25,26 @@ ins { color: #9fe6c9; background: rgba(101, 199, 162, .18); text-decoration: und
     .doc td { padding: 2px 0; border: 0; }
     .doc td::before { content: attr(data-label) "："; color: var(--gold); font-size: 13px; font-weight: 800; }
 }
+
+/* Level-by-level comparison cards. */
+.step-card { margin: 10px 0; padding: 12px 14px; border: 1px solid #333b46; border-radius: 12px; background: rgba(8, 13, 21, .45); }
+.step-card header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.step-card .num { color: var(--muted); font-size: 13px; }
+.step-card .tag, .step-card .kind { padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 1.8; }
+.step-card .tag { border: 1px solid var(--line); }
+.tag-新增 { border-color: var(--jade) !important; color: #9fe6c9; }
+.tag-改寫, .tag-合併改寫 { border-color: var(--gold) !important; color: var(--gold); }
+.tag-沿用 { color: var(--muted); }
+.step-card .kind { background: #1d2a38; color: var(--ink); }
+.step-card .why { margin: 6px 0 2px; }
+.step-card summary { cursor: pointer; color: var(--gold); font-size: 14px; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 8px; }
+.compare > div { min-width: 0; padding: 10px 12px; border: 1px solid #333b46; border-radius: 10px; }
+.compare > div:last-child { border-color: #5b4b2c; }
+.compare h4 { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+.compare p { margin: 4px 0; font-size: 14px; }
+.compare pre { margin: 6px 0; padding: 8px; overflow-x: auto; border-radius: 6px; background: #050a10; font-size: 13px; white-space: pre-wrap; }
+.compare .opts { margin: 4px 0; padding-left: 1.2em; font-size: 14px; }
+.compare .opts .ok { color: #9fe6c9; }
+.compare .none { color: var(--muted); }
+@media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
