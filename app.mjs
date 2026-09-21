@@ -40,7 +40,7 @@ function cover() {
     $('#app').innerHTML = `<section class="cover">
       <div class="sigil" aria-hidden="true">${SIGIL}</div>
       <div><p class="eyebrow">九年級·系統平臺</p><h1>${TITLE}</h1>
-      <h2>天機城失控案</h2><p class="lead">天機鏡說出末日預言，全城隨即停擺。你要查的不是魔法，而是輸入、CPU、記憶體、作業系統與網路留下的證據。</p>
+      <h2>天機城失控案</h2><p class="lead">天機鏡說出末日預言，全城隨即停擺。你要查的不是功法，而是輸入、CPU、記憶體、作業系統與網路留下的證據。</p>
       <div class="preview-actions"><button id="play" class="primary">${step ? `繼續試玩（第 ${step} 步）` : '開始試玩'}</button>
       ${step ? '<button id="restart" class="secondary">從頭開始</button>' : ''}</div>
       <p class="note">試玩版·不需登入·進度只存在這台瀏覽器·提示與訂正不扣分</p></div></section>`;
