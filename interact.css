@@ -45,6 +45,43 @@
 .syslog { margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #050a10; color: #cfe9dd;
     font: 14px/1.7 ui-monospace, Consolas, "Noto Sans Mono CJK TC", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+.taskmgr { margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #0b121b; }
+.tm-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.tm-head b { color: var(--gold); }
+.tm-response { font-weight: 900; }
+.tm-response.slow { color: var(--red); }
+.tm-response.fast { color: var(--jade); }
+.tm-response.stopped { color: var(--muted); }
+.taskmgr .meter { margin: 8px 0; padding: 8px; border: 0; background: transparent; }
+.tm-warn { margin: 6px 0; padding: 8px 10px; border-left: 4px solid var(--red); border-radius: 6px; background: rgba(219, 118, 108, .15); }
+.taskmgr .tm-table th, .taskmgr .tm-table td { position: static; padding: 6px 8px; background: transparent; color: var(--ink); white-space: normal; }
+.taskmgr .tm-table th { color: var(--muted); font-size: 13px; }
+.taskmgr .tm-table td:nth-child(2), .taskmgr .tm-table td:nth-child(3) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.taskmgr .tm-table td:last-child { white-space: nowrap; text-align: right; }
+.taskmgr .tm-table td:last-child button { font-size: 14px; }
+.taskmgr .tm-table tr.ended td { color: var(--muted); text-decoration: line-through; }
+.taskmgr .tm-table tr.ended td:last-child { text-decoration: none; }
+.tm-total { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+.nettest { display: grid; gap: 6px; margin: 10px 0; }
+.nt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(8.5em, auto); align-items: center; gap: 8px;
+    padding: 6px 10px; border: 1px solid #3a4452; border-radius: 10px; background: #121e2b; }
+.nt-row button { padding: 4px 12px; }
+.nt-row output { font-variant-numeric: tabular-nums; }
+
+.mirror-say { margin: 10px 0; padding: 12px 14px; border: 1px solid #5b4b2c; border-radius: 14px; background: rgba(52, 41, 27, .45); line-height: 2; }
+.mirror-say b { color: var(--gold); }
+.mirror-say button { display: inline; margin: 0 2px; padding: 1px 4px; border: 0; border-bottom: 2px dashed #6f6250; border-radius: 4px;
+    background: transparent; color: var(--ink); font: inherit; text-align: left; }
+.mirror-say button.marked { border-bottom-color: var(--red); background: rgba(219, 118, 108, .25); }
+.mirror-say button.marked::before { content: "？"; color: var(--red); font-weight: 900; }
+
+.syslog { list-style: none; }
+.syslog li { margin: 0; }
+.syslog button { display: block; width: 100%; padding: 2px 6px; border: 0; border-radius: 4px; background: transparent; color: inherit;
+    font: inherit; text-align: left; white-space: pre-wrap; }
+.syslog button.marked { background: rgba(233, 189, 98, .22); }
+
 .pause-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--gold); border-radius: 12px;
     background: rgba(131, 92, 31, .22); font-weight: 800; }
 
@@ -58,4 +95,6 @@
     .sim-cpu, .sim-screen { gap: 4px; padding: 8px; font-size: 14px; }
     .sim .unit { padding: 2px 6px; }
     .path-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nt-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .nt-row output { grid-column: 1 / -1; }
 }

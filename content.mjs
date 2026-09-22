@@ -70,6 +70,21 @@ export function runMachine (memory, limit = 40) {
 
 export const DEFAULT_BINS = [['cpu', 'CPU'], ['gpu', 'GPU']];
 
+// A small task manager: above 90% memory the computer swaps to SSD, the disk is busy and the mirror answers slowly.
+export function taskState (step, ended = []) {
+    const alive = step.processes.filter(([id]) => !ended.includes(id));
+    const memory = Math.round(alive.reduce((sum, item) => sum + item[2], 0) * 10) / 10;
+    const memoryPct = Math.round(memory / step.memoryTotal * 100);
+    const swapping = memoryPct > 90;
+    const required = step.processes.filter(item => item[4]).every(([id]) => !ended.includes(id));
+    const running = !ended.includes(step.processes[0][0]);
+    return {
+        alive: alive.map(([id]) => id), memory, memoryPct, swapping, required,
+        cpu: Math.round(alive.reduce((sum, item) => sum + item[3], 0)), disk: swapping ? 100 : 6, network: 2,
+        response: running ? (swapping ? 8.2 : 0.4) : null, ok: required && !swapping
+    };
+}
+
 const story = (chapter, id, title, narrative, truth, metaphor) => ({
     chapter, id, type: 'story', title, narrative, truth, metaphor, points: 0
 });
@@ -157,7 +172,7 @@ export const STEPS = [
         [
             ['keyboard', '鍵盤'], ['camera', '攝影機'], ['speaker', '喇叭'],
             ['printer', '印表機'], ['touchscreen', '觸控螢幕'], ['headset', '耳機麥克風']
-        ], {camera: 'input', headset: 'both', keyboard: 'input', printer: 'output', speaker: 'output', touchscreen: 'both'}, 4,
+        ], {camera: 'input', headset: 'both', keyboard: 'input', printer: 'output', speaker: 'output', touchscreen: 'both'}, 3,
         ['資料往哪個方向走？進電腦，還是出電腦？', '觸控螢幕：手指的位置送進去，畫面也送出來。'],
         {bins: [['input', '輸入'], ['output', '輸出'], ['both', '兩者都有']]}),
     seal(2, 'seal-architecture', ['資料要先進記憶體，CPU 才能處理', 'CPU 由控制單元和算術邏輯單元組成，但 CPU 不是整台電腦']),
@@ -186,15 +201,14 @@ export const STEPS = [
         '將常見儲存層級排序：第 1 個放最接近 CPU、通常最快的一層，最後放離 CPU 最遠、最慢的一層。',
         [['register', '暫存器（在 CPU 裡）'], ['cache', '快取記憶體'], ['ram', 'RAM（主記憶體）'], ['storage', 'SSD／長期儲存']],
         ['register', 'cache', 'ram', 'storage'], 3, ['暫存器就在 CPU 裡，最貼近運算。', '快取介於暫存器和 RAM 之間。']),
-    task(3, 'memory-bottleneck', 'choice', '災情判讀',
-        '天機鏡的工作管理員顯示如上，程式卻非常慢。最可能的原因是什麼？',
-        [
-            ['memory', '記憶體不夠，資料一直在 RAM 和 SSD 之間搬'],
-            ['cpu', 'CPU 太慢，應該換一顆更快的 CPU'],
-            ['network', '網路太慢，資料傳不過來'],
-            ['screen', '螢幕解析度太高，畫面來不及顯示']
-        ], 'memory', 3, ['哪一格幾乎滿了？CPU 真的很忙嗎？'],
-        {panel: [['CPU', 18], ['記憶體', 97], ['磁碟', 100], ['網路', 2]]}),
+    task(3, 'memory-bottleneck', 'taskmgr', '災情判讀',
+        '天機鏡每次回應要等 8 秒。看工作管理員找出瓶頸，結束用不到的工作，讓回應時間降到 1 秒以內；天機鏡和它需要的程式不能結束。改好後按「送出處置」。',
+        [], ['browser'], 4, ['CPU 很忙嗎？哪一格幾乎滿了？', '哪個程式佔了不少記憶體，而且天機鏡用不到？'],
+        {memoryTotal: 8, processes: [
+            ['mirror', '天機鏡預言程式', 3.6, 9, true], ['vision', '影像分析（天機鏡需要）', 2.2, 6, true],
+            ['browser', '瀏覽器（開了 30 個分頁）', 1.6, 2, false], ['update', '系統更新（背景下載）', 0.3, 1, false],
+            ['music', '音樂播放', 0.1, 0.5, false]
+        ]}),
     seal(3, 'seal-memory', ['要用的資料得先載入 RAM；斷電時 RAM 會清空', '程式慢可能是在等資料，不一定是 CPU 太慢'],
         {pause: '第一節課到這裡。下一節從第四章接著查，你的進度已經存好了。'}),
 
@@ -242,7 +256,7 @@ export const STEPS = [
             ['pixels', '同時調亮一張照片的幾百萬個像素'],
             ['matrix', '訓練 AI 模型的大量矩陣運算'],
             ['face', '手機的臉部解鎖辨識']
-        ], {boot: 'cpu', face: 'npu', matrix: 'gpu', pixels: 'gpu', serial: 'cpu'}, 4,
+        ], {boot: 'cpu', face: 'npu', matrix: 'gpu', pixels: 'gpu', serial: 'cpu'}, 3,
         ['「大量、相似、可以同時做」的工作交給誰？', 'NPU 是手機裡專門做 AI 辨識的處理器。'],
         {bins: [['cpu', 'CPU'], ['gpu', 'GPU'], ['npu', 'NPU']]}),
     task(5, 'gpu-truth', 'choice', '結丹真相',
@@ -263,10 +277,18 @@ export const STEPS = [
         '洞府之內，諸事如常；雲端模型、書信與網頁卻音訊全無。線索直指一條斷了的傳送之路。',
         '裝置要透過區域網路、路由器與網際網路，才能連到遠端服務；本地、邊緣與雲端運算各有取捨。',
         '洞府是本地裝置，仙界宗門像遠端的資料中心；傳送陣一斷，雲端神通就到不了。'),
-    task(6, 'network-path', 'order', '修復傳送陣',
-        '把教室平板連到遠端網路服務的路徑，由第 1 站排到第 5 站。',
-        [['device', '教室平板'], ['lan', '教室的 Wi-Fi（區域網路）'], ['router', '路由器／閘道器'], ['internet', '網際網路'], ['service', '遠端網路服務']],
-        ['device', 'lan', 'router', 'internet', 'service'], 3, ['先離開自己的裝置和區域網路，才進得了網際網路。']),
+    task(6, 'network-path', 'nettest', '逐站測試',
+        '天機鏡連不上雲端。先按「測試」看每一站有沒有回應，再判斷線路斷在哪裡。',
+        [
+            ['device-lan', '教室平板 ↔ 教室 Wi-Fi'], ['lan-router', '教室 Wi-Fi ↔ 路由器'],
+            ['router-internet', '路由器 ↔ 網際網路'], ['internet-service', '網際網路 ↔ 遠端服務'],
+            ['service', '遠端服務本身壞了']
+        ], 'router-internet', 4,
+        ['資料從平板出發，依序經過 Wi-Fi、路由器、網際網路，才到遠端服務。', '沿著這條路，最後一個「有回應」和第一個「沒回應」之間，就是斷點。'],
+        {stations: [
+            ['device', '教室平板（自己）', 0], ['lan', '教室 Wi-Fi', 3], ['router', '路由器／閘道器', 5],
+            ['internet', '網際網路（外部網站）', null], ['service', '遠端服務（雲端模型）', null]
+        ]}),
     task(6, 'dns', 'choice', '名與址',
         '在瀏覽器輸入網址時，負責把網域名稱轉換成 IP 位址的是什麼？',
         [['dns', 'DNS（網域名稱系統）'], ['router', '路由器'], ['search', '搜尋引擎（例如 Google）'], ['bookmark', '瀏覽器的書籤']],
@@ -282,7 +304,7 @@ export const STEPS = [
         [
             ['car', '自駕車判斷前方有沒有行人'], ['redlight', '路口攝影機偵測闖紅燈'], ['translate', '沒有網路時的離線翻譯'],
             ['backup', '備份一萬張照片'], ['coedit', '全班同時編輯同一份文件'], ['train', '訓練大型 AI 模型']
-        ], {backup: 'cloud', car: 'edge', coedit: 'cloud', redlight: 'edge', train: 'cloud', translate: 'edge'}, 4,
+        ], {backup: 'cloud', car: 'edge', coedit: 'cloud', redlight: 'edge', train: 'cloud', translate: 'edge'}, 3,
         ['要立刻反應、不能怕斷線的，放哪裡？', '需要大量資源，或要讓很多人共用的，放哪裡？'],
         {bins: [['edge', '就地處理（邊緣）'], ['cloud', '交給雲端']]}),
     seal(6, 'seal-network', ['網路服務要靠一站一站完整的連線', '本地、邊緣與雲端各有優缺點']),
@@ -307,14 +329,16 @@ export const STEPS = [
             ['search', '模型會自己上網查暴雨的資料'],
             ['learn', '模型看一眼就學會暴雨是什麼']
         ], 'error', 3, ['模型只能從看過的資料裡學習。', '它會不會知道自己沒學過？']),
-    task(7, 'verify-output', 'choice', '查證關',
-        '天機鏡很有自信地說「明日必有大劫」，卻沒有附上來源。下一步最適當的是什麼？',
+    task(7, 'verify-output', 'highlight', '查證關',
+        '這是天機鏡的完整回答。點出所有「要先查證才能相信」的句子，再按確認。',
         [
-            ['verify', '查官方公告和感測紀錄，由人確認後再決定'],
-            ['ask2', '換另一個 AI 問，兩個都這樣說就相信'],
-            ['cite', '請它附上來源，只要有附就相信'],
-            ['repeat', '再問它一次，答案一樣就相信']
-        ], 'verify', 3, ['信心語氣不是證據。', '同一個來源問兩次，算不算兩個證據？']),
+            ['doom', '根據我的推算，明日天機城必將毀滅。'],
+            ['river', '城東河水已比平常高出三尺。'],
+            ['calm', '請大家保持冷靜，照顧身邊的人。'],
+            ['elders', '長老會議已經決定全城撤離。'],
+            ['note', '以上內容僅供參考。']
+        ], ['doom', 'elders', 'river'], 4,
+        ['這句話說的是「發生了什麼事」，還是建議或客套話？', '能不能找到紀錄或公告來核對？能核對的，就要先查證。']),
     task(7, 'human-check', 'multi', '立新門規',
         '要讓天機鏡以後更可靠，選出所有合理的做法。',
         [
@@ -329,19 +353,21 @@ export const STEPS = [
         '實際故障常是好幾層連鎖發生。診斷要依時間、系統日誌與可重現的證據，建立故障鏈。',
         '天劫不是單一雷擊，而是一連串沒有及時處理的警訊。'),
     task(8, 'final-chain', 'order', '提交事故卷宗',
-        '對照上面的系統日誌，依發生時間，把五個故障由第 1 個排到第 5 個。',
+        '對照上面的系統日誌，依發生時間，把五個故障由第 1 個排到第 5 個。日誌裡也有和事故無關的一般紀錄。',
         [
             ['bad-input', '感測器輸入資料不完整'], ['memory-pressure', '記憶體壓力持續升高'],
             ['cpu-fallback', 'GPU 工作退回 CPU，處理排隊'], ['network-loss', '雲端備援連線中斷'],
             ['unverified-output', '未經查證的輸出被當成事實']
         ], ['bad-input', 'memory-pressure', 'cpu-fallback', 'network-loss', 'unverified-output'], 10,
-        ['每個故障，對應日誌裡的哪一行？', '看時間，由早到晚。'],
+        ['每個故障，對應日誌裡的哪一行？一般紀錄（INFO）和事故無關。', '看時間，由早到晚。'],
         {evidence: [
-            '08:11  網路　　無法連線到雲端備援伺服器',
-            '07:58  感測器　3 號感測器回傳的資料缺少 40%',
-            '08:15  公告　　「明日天機城必將毀滅」已發布，未經人工確認',
-            '08:03  系統　　記憶體使用率 97%，開始頻繁搬移資料',
-            '08:05  加速器　GPU 記憶體不足，影像分析改由 CPU 執行'
+            '08:11  WARN   網路　　無法連線到雲端備援伺服器（逾時）',
+            '07:58  WARN   感測器　3 號感測器回傳資料缺少 40%',
+            '08:00  INFO   音樂　　播放清單已開始',
+            '08:15  ALERT  公告　　「明日天機城必將毀滅」已發布（未經人工確認）',
+            '08:03  WARN   系統　　記憶體使用率 97%，開始頻繁與 SSD 交換資料',
+            '08:07  INFO   使用者　長老登入調度台',
+            '08:05  WARN   加速器　GPU 記憶體不足，影像分析改由 CPU 執行'
         ]}),
     task(8, 'fix-plan', 'multi', '對症下藥',
         '根據剛才排出的事故鏈，下列哪些是真正改善問題、避免事故再發生的做法？（可以選多項）',
@@ -369,9 +395,9 @@ const plainObject = value => value && typeof value === 'object' && !Array.isArra
 
 export const validAnswer = (step, value) => {
     const ids = new Set((step.choices || []).map(([id]) => id));
-    if (step.type === 'choice') return typeof value === 'string' && ids.has(value);
+    if (step.type === 'choice' || step.type === 'nettest') return typeof value === 'string' && ids.has(value);
     if (step.type === 'order') return Array.isArray(value) && value.length === ids.size && new Set(value).size === value.length && value.every(id => ids.has(id));
-    if (step.type === 'multi') return Array.isArray(value) && value.length <= ids.size && new Set(value).size === value.length && value.every(id => ids.has(id));
+    if (step.type === 'multi' || step.type === 'highlight') return Array.isArray(value) && value.length <= ids.size && new Set(value).size === value.length && value.every(id => ids.has(id));
     if (step.type === 'match') {
         const bins = new Set((step.bins || DEFAULT_BINS).map(([id]) => id));
         return plainObject(value) && Object.keys(value).sort().join('|') === [...ids].sort().join('|') &&
@@ -380,6 +406,10 @@ export const validAnswer = (step, value) => {
     if (step.type === 'path') {
         const nodes = new Set(step.nodes.map(([id]) => id));
         return Array.isArray(value) && value.length >= 1 && value.length <= 10 && value.every(id => nodes.has(id));
+    }
+    if (step.type === 'taskmgr') {
+        const processes = new Set(step.processes.map(([id]) => id));
+        return Array.isArray(value) && new Set(value).size === value.length && value.every(id => processes.has(id));
     }
     if (step.type === 'program') {
         const edit = step.machine.edit;
@@ -390,6 +420,8 @@ export const validAnswer = (step, value) => {
 };
 
 export const correctAnswer = (step, value) => {
+    if (step.type === 'taskmgr') return taskState(step, value).ok;
+    if (step.type === 'multi' || step.type === 'highlight') return [...value].sort().join('|') === [...step.answer].sort().join('|');
     if (step.type === 'program') {
         return JSON.stringify(runMachine(applyEdits(step.machine, value)).output) === JSON.stringify(step.machine.goal);
     }

@@ -1,4 +1,4 @@
-import {CHAPTERS, DEFAULT_BINS, OPS, STEPS, applyEdits, cellLabel, runMachine} from './content.mjs';
+import {CHAPTERS, DEFAULT_BINS, OPS, STEPS, applyEdits, cellLabel, runMachine, taskState} from './content.mjs';
 import {LESSONS, SCENES} from './lessons.mjs';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/gu,
@@ -90,11 +90,12 @@ function draftFor(actor, state, step, item) {
             new Set(draft.answer).size !== ids.length || !draft.answer.every(id => ids.includes(id)))) {
             draft.answer = item.answer || shuffledOrder(ids, step.answer, `${state.attemptId}:${step.id}`);
         } else if (step.type === 'multi' && !Array.isArray(draft.answer)) draft.answer = item.answer || [];
-        else if (step.type === 'path' && !Array.isArray(draft.answer)) draft.answer = item.answer || [];
+        else if (['path', 'taskmgr', 'highlight'].includes(step.type) && !Array.isArray(draft.answer)) draft.answer = item.answer || [];
         else if (step.type === 'match' && !object(draft.answer)) draft.answer = item.answer || {};
         else if (step.type === 'program' && !object(draft.answer)) {
             draft.answer = item.answer || Object.fromEntries(Object.keys(step.machine.edit).map(cell => [cell, step.machine.memory[cell][0]]));
         }
+        if (step.type === 'nettest' && !Array.isArray(draft.tested)) draft.tested = item.ok ? step.stations.map(([id]) => id) : [];
         memory.set(key, draft);
     }
     if (item.ok) draft.answer = item.answer;
@@ -194,6 +195,24 @@ function controls(step, item, draft, seed) {
     if (step.type === 'program') {
         return `<div id="machine-program"></div><button id="confirm" class="primary" ${disabled}>送出結果</button>`;
     }
+    if (step.type === 'taskmgr') {
+        return `<div id="taskmgr"></div><button id="confirm" class="primary" ${disabled}>送出處置</button>`;
+    }
+    if (step.type === 'nettest') {
+        const selected = item.ok ? item.answer : draft.answer;
+        return `<div class="nettest">${shown(step.stations).map(([id, label]) => `<div class="nt-row"><span>${esc(label)}</span>
+            <button type="button" class="secondary" data-test="${esc(id)}" ${disabled}>測試</button>
+            <output data-result="${esc(id)}">${esc(draft.tested.includes(id) ? pingText(step, id) : '')}</output></div>`).join('')}</div>
+        <p class="instruction">斷點在哪裡？選一個，再按確認。</p><div class="choices">${shown(step.choices).map(([id, label]) =>
+            `<button data-pick="${esc(id)}" aria-pressed="${selected === id}" class="${selected === id ? 'selected' : ''}" ${disabled}>${esc(label)}</button>`).join('')}</div>
+        <button id="confirm" class="primary" ${disabled}>確認斷點</button>`;
+    }
+    if (step.type === 'highlight') {
+        const selected = item.ok ? item.answer : draft.answer;
+        return `<div class="mirror-say" role="group" aria-label="天機鏡的回答"><b>天機鏡：</b>${step.choices.map(([id, text]) =>
+            `<button type="button" data-say="${esc(id)}" aria-pressed="${selected.includes(id)}" class="${selected.includes(id) ? 'marked' : ''}" ${disabled}>${esc(text)}</button>`).join('')}</div>
+        <p class="instruction">點一下句子做記號，再點一次取消。</p><button id="confirm" class="primary" ${disabled}>確認</button>`;
+    }
     return '';
 }
 
@@ -203,8 +222,42 @@ function evidence(step) {
         html += `<div class="meter" aria-label="工作管理員">${step.panel.map(([label, value]) =>
             `<div><span>${esc(label)}</span><i class="${Number(value) >= 90 ? 'high' : ''}" style="--value:${Number(value)}%"></i><b>${Number(value)}%</b></div>`).join('')}</div>`;
     }
-    if (step.evidence) html += `<pre class="syslog" aria-label="系統日誌">${step.evidence.map(esc).join('\n')}</pre>`;
+    if (step.evidence) {
+        html += `<ol class="syslog" aria-label="系統日誌">${step.evidence.map(line =>
+            `<li><button type="button" data-log>${esc(line)}</button></li>`).join('')}</ol>
+            <p class="instruction">可以點日誌的某一行做記號，方便對照。</p>`;
+    }
     return html;
+}
+
+function pingText(step, id) {
+    const delay = step.stations.find(([station]) => station === id)[2];
+    return delay === null ? '✗ 沒有回應（逾時）' : delay === 0 ? '✓ 本機正常' : `✓ 有回應（${delay} 毫秒）`;
+}
+
+function mountTaskManager(host, step, {ended, onToggle, locked}) {
+    const render = () => {
+        const state = taskState(step, ended());
+        const meters = [['CPU', state.cpu], ['記憶體', state.memoryPct], ['磁碟', state.disk], ['網路', state.network]];
+        host.innerHTML = `<div class="taskmgr"><div class="tm-head"><b>工作管理員</b>
+            <span class="tm-response ${state.response === null ? 'stopped' : state.swapping ? 'slow' : 'fast'}">${state.response === null ?
+                '天機鏡已關閉，沒有回應' : `天機鏡回應時間：${state.response} 秒`}</span></div>
+          <div class="meter">${meters.map(([label, value]) =>
+            `<div><span>${label}</span><i class="${value >= 90 ? 'high' : ''}" style="--value:${value}%"></i><b>${value}%</b></div>`).join('')}</div>
+          ${state.required ? '' : '<p class="tm-warn" role="alert">天機鏡需要的程式被關掉了，預言一定會出錯。請重新開啟。</p>'}
+          <table class="tm-table"><thead><tr><th>程式</th><th>CPU</th><th>記憶體</th><th></th></tr></thead><tbody>${step.processes.map(([id, label, memory, cpu]) => {
+            const off = ended().includes(id);
+            return `<tr class="${off ? 'ended' : ''}"><td>${esc(label)}</td><td>${off ? '—' : `${cpu}%`}</td><td>${off ? '—' : `${memory.toFixed(1)} GB`}</td>
+              <td><button type="button" class="text-button" data-proc="${esc(id)}" ${locked() ? 'disabled' : ''}>${off ? '重新開啟' : '結束工作'}</button></td></tr>`;
+          }).join('')}</tbody></table><p class="tm-total">記憶體：已使用 ${state.memory} GB／共 ${step.memoryTotal} GB</p></div>`;
+    };
+    host.addEventListener('click', event => {
+        const id = event.target.closest('[data-proc]')?.dataset.proc;
+        if (!id || locked()) return;
+        onToggle(id);
+        render();
+    });
+    render();
 }
 
 function bindOrder(canEdit, onChange) {
@@ -366,7 +419,7 @@ export function renderLearning({record, actor, send, canEdit}) {
     const locked = () => !canEdit() || item.ok;
     all('[data-pick]').forEach(button => { button.onclick = () => {
         if (locked()) return;
-        if (step.type === 'choice') draft.answer = button.dataset.pick;
+        if (step.type === 'choice' || step.type === 'nettest') draft.answer = button.dataset.pick;
         else {
             const set = new Set(draft.answer);
             if (set.has(button.dataset.pick)) set.delete(button.dataset.pick); else set.add(button.dataset.pick);
@@ -374,7 +427,7 @@ export function renderLearning({record, actor, send, canEdit}) {
         }
         save();
         all('[data-pick]').forEach(option => {
-            const active = step.type === 'choice' ? option.dataset.pick === draft.answer : draft.answer.includes(option.dataset.pick);
+            const active = step.type === 'multi' ? draft.answer.includes(option.dataset.pick) : option.dataset.pick === draft.answer;
             option.classList.toggle('selected', active);
             option.setAttribute('aria-pressed', String(active));
         });
@@ -397,6 +450,28 @@ export function renderLearning({record, actor, send, canEdit}) {
         if (locked()) return;
         draft.answer = button.dataset.path === 'undo' ? draft.answer.slice(0, -1) : []; save(); showPath();
     }; });
+    all('[data-test]').forEach(button => { button.onclick = () => {
+        if (locked()) return;
+        const id = button.dataset.test;
+        if (!draft.tested.includes(id)) draft.tested = [...draft.tested, id];
+        save();
+        all('[data-result]').find(output => output.dataset.result === id).textContent = pingText(step, id);
+    }; });
+    all('[data-say]').forEach(button => { button.onclick = () => {
+        if (locked()) return;
+        const set = new Set(draft.answer);
+        if (set.has(button.dataset.say)) set.delete(button.dataset.say); else set.add(button.dataset.say);
+        draft.answer = [...set].sort(); save();
+        button.classList.toggle('marked', set.has(button.dataset.say));
+        button.setAttribute('aria-pressed', String(set.has(button.dataset.say)));
+    }; });
+    all('[data-log]').forEach(button => { button.onclick = () => button.classList.toggle('marked'); });
+    if ($('#taskmgr')) {
+        mountTaskManager($('#taskmgr'), step, {ended: () => draft.answer, locked, onToggle: id => {
+            draft.answer = draft.answer.includes(id) ? draft.answer.filter(item => item !== id) : [...draft.answer, id].sort();
+            save();
+        }});
+    }
     if ($('#machine-demo')) mountMachine($('#machine-demo'), step.machine);
     if ($('#machine-program')) {
         mountMachine($('#machine-program'), step.machine, {editable: true, edits: () => draft.answer, locked,
@@ -405,14 +480,15 @@ export function renderLearning({record, actor, send, canEdit}) {
     $('#confirm')?.addEventListener('click', () => {
         if (locked()) return;
         const warn = text => { $('#sync').textContent = text; };
-        if (step.type === 'choice' && !draft.answer) { warn('請先選一個答案，再按確認。'); return; }
+        if ((step.type === 'choice' || step.type === 'nettest') && !draft.answer) { warn('請先選一個答案，再按確認。'); return; }
+        if (step.type === 'highlight' && !draft.answer.length) { warn('請先點出要查證的句子，再按確認。'); return; }
         if (step.type === 'path' && !draft.answer.length) { warn('請先依序點出資料經過的站。'); return; }
         if (step.type === 'match' && step.choices.some(([id]) => !draft.answer[id])) {
             const first = step.choices.find(([id]) => !draft.answer[id]);
             all('[data-job]').find(option => option.dataset.job === first[0])?.focus();
             warn('每一項都要選好，再按確認。'); return;
         }
-        save(); send('submit', step.type === 'multi' ? [...draft.answer].sort() : draft.answer);
+        save(); send('submit', ['multi', 'highlight', 'taskmgr'].includes(step.type) ? [...draft.answer].sort() : draft.answer);
     });
     dispose = bindOrder(() => !locked(), value => { draft.answer = value; save(); });
     const key = `${actor.actorId}:${step.id}`;
