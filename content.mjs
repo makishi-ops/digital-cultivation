@@ -26,7 +26,7 @@ export const applyEdits = (machine, edits = {}) => machine.memory.map((cell, ind
     const address = cell && cell[0] !== 'num' && cell.length > 1 ? cell[1] : machine.operand?.[index];
     return ['load', 'add', 'sub', 'mul'].includes(op) ? [op, address] : [op];
 });
-export function runMachine (memory, limit = 40) {
+export const runMachine = (memory, limit = 40) => {
     const trace = [];
     const output = [];
     let pc = 0;
@@ -66,12 +66,12 @@ export function runMachine (memory, limit = 40) {
     }
     log('control', '執行太多步，先停下來。');
     return {trace, output, acc, error: 'TOO_LONG'};
-}
+};
 
 export const DEFAULT_BINS = [['cpu', 'CPU'], ['gpu', 'GPU']];
 
 // A small task manager: above 90% memory the computer swaps to SSD, the disk is busy and the mirror answers slowly.
-export function taskState (step, ended = []) {
+export const taskState = (step, ended = []) => {
     const alive = step.processes.filter(([id]) => !ended.includes(id));
     const memory = Math.round(alive.reduce((sum, item) => sum + item[2], 0) * 10) / 10;
     const memoryPct = Math.round(memory / step.memoryTotal * 100);
@@ -83,7 +83,7 @@ export function taskState (step, ended = []) {
         cpu: Math.round(alive.reduce((sum, item) => sum + item[3], 0)), disk: swapping ? 100 : 6, network: 2,
         response: running ? (swapping ? 8.2 : 0.4) : null, ok: required && !swapping
     };
-}
+};
 
 const story = (chapter, id, title, narrative, truth, metaphor) => ({
     chapter, id, type: 'story', title, narrative, truth, metaphor, points: 0

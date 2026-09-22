@@ -106,7 +106,9 @@ function draftFor(actor, state, step, item) {
 }
 
 // The stored-program machine: memory on the left, the CPU and the screen on the right, run one step at a time.
-function mountMachine(host, machine, {editable = false, edits = () => ({}), onEdit = () => {}, locked = () => false} = {}) {
+// `frozen` (solved) decides what is drawn disabled; `locked` (solved or a request in flight) is checked when clicked,
+// because KUSU redraws the page while its request is still marked busy.
+function mountMachine(host, machine, {editable = false, edits = () => ({}), onEdit = () => {}, locked = () => false, frozen = false} = {}) {
     let run = null;
     let index = -1;
     const program = () => applyEdits(machine, editable ? edits() : {});
@@ -122,7 +124,7 @@ function mountMachine(host, machine, {editable = false, edits = () => ({}), onEd
         const done = run && index === run.trace.length - 1;
         host.innerHTML = `<div class="sim">
           <div class="sim-memory"><b>記憶體</b><ol>${cells.map((cell, at) => `<li class="${at === pc && run ? 'current' : ''} ${cell?.[0] === 'num' ? 'data' : ''}">
-            <span class="addr">${at}</span>${editable && machine.edit[at] ? `<select data-edit="${at}" aria-label="第 ${at} 格的指令" ${locked() ? 'disabled' : ''}>${machine.edit[at].map(op =>
+            <span class="addr">${at}</span>${editable && machine.edit[at] ? `<select data-edit="${at}" aria-label="第 ${at} 格的指令" ${frozen ? 'disabled' : ''}>${machine.edit[at].map(op =>
                 `<option value="${op}" ${edits()[at] === op ? 'selected' : ''}>${esc(opLabel(at, op))}</option>`).join('')}</select>` :
                 `<span>${esc(cellLabel(cell))}</span>`}</li>`).join('')}</ol></div>
           <div class="sim-side"><div class="sim-cpu"><b>CPU</b>
@@ -235,7 +237,7 @@ function pingText(step, id) {
     return delay === null ? '✗ 沒有回應（逾時）' : delay === 0 ? '✓ 本機正常' : `✓ 有回應（${delay} 毫秒）`;
 }
 
-function mountTaskManager(host, step, {ended, onToggle, locked}) {
+function mountTaskManager(host, step, {ended, onToggle, locked, frozen}) {
     const render = () => {
         const state = taskState(step, ended());
         const meters = [['CPU', state.cpu], ['記憶體', state.memoryPct], ['磁碟', state.disk], ['網路', state.network]];
@@ -248,7 +250,7 @@ function mountTaskManager(host, step, {ended, onToggle, locked}) {
           <table class="tm-table"><thead><tr><th>程式</th><th>CPU</th><th>記憶體</th><th></th></tr></thead><tbody>${step.processes.map(([id, label, memory, cpu]) => {
             const off = ended().includes(id);
             return `<tr class="${off ? 'ended' : ''}"><td>${esc(label)}</td><td>${off ? '—' : `${cpu}%`}</td><td>${off ? '—' : `${memory.toFixed(1)} GB`}</td>
-              <td><button type="button" class="text-button" data-proc="${esc(id)}" ${locked() ? 'disabled' : ''}>${off ? '重新開啟' : '結束工作'}</button></td></tr>`;
+              <td><button type="button" class="text-button" data-proc="${esc(id)}" ${frozen ? 'disabled' : ''}>${off ? '重新開啟' : '結束工作'}</button></td></tr>`;
           }).join('')}</tbody></table><p class="tm-total">記憶體：已使用 ${state.memory} GB／共 ${step.memoryTotal} GB</p></div>`;
     };
     host.addEventListener('click', event => {
@@ -467,14 +469,14 @@ export function renderLearning({record, actor, send, canEdit}) {
     }; });
     all('[data-log]').forEach(button => { button.onclick = () => button.classList.toggle('marked'); });
     if ($('#taskmgr')) {
-        mountTaskManager($('#taskmgr'), step, {ended: () => draft.answer, locked, onToggle: id => {
+        mountTaskManager($('#taskmgr'), step, {ended: () => draft.answer, locked, frozen: !!item.ok, onToggle: id => {
             draft.answer = draft.answer.includes(id) ? draft.answer.filter(item => item !== id) : [...draft.answer, id].sort();
             save();
         }});
     }
     if ($('#machine-demo')) mountMachine($('#machine-demo'), step.machine);
     if ($('#machine-program')) {
-        mountMachine($('#machine-program'), step.machine, {editable: true, edits: () => draft.answer, locked,
+        mountMachine($('#machine-program'), step.machine, {editable: true, edits: () => draft.answer, locked, frozen: !!item.ok,
             onEdit: (cell, op) => { draft.answer = {...draft.answer, [cell]: op}; save(); }});
     }
     $('#confirm')?.addEventListener('click', () => {
