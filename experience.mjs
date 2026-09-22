@@ -50,8 +50,9 @@ export function mountCoverArt() {
     fillImages();
 }
 
-// Same starting order for the same student and step, never the answer itself (and never a simple rotation of it).
-function shuffledOrder(ids, answer, seed) {
+// Options, items and stations are shown in an order that differs per student but stays the same for that student,
+// so the correct answer is not always in the same place.
+function seededShuffle(items, seed) {
     let hash = 2166136261;
     for (const char of seed) hash = Math.imul(hash ^ char.codePointAt(0), 16777619);
     const random = () => {
@@ -59,11 +60,17 @@ function shuffledOrder(ids, answer, seed) {
         hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
         return ((hash ^= hash >>> 16) >>> 0) / 4294967296;
     };
-    const list = [...ids];
+    const list = [...items];
     for (let index = list.length - 1; index > 0; index -= 1) {
         const other = Math.floor(random() * (index + 1));
         [list[index], list[other]] = [list[other], list[index]];
     }
+    return list;
+}
+
+// Same starting order for the same student and step, never the answer itself (and never a simple rotation of it).
+function shuffledOrder(ids, answer, seed) {
+    const list = seededShuffle(ids, seed);
     const rotated = [...answer.slice(1), answer[0]];
     if (list.join() === answer.join() || list.join() === rotated.join()) [list[0], list[list.length - 1]] = [list[list.length - 1], list[0]];
     if (list.join() === answer.join()) [list[0], list[1]] = [list[1], list[0]];
@@ -146,8 +153,9 @@ function mountMachine(host, machine, {editable = false, edits = () => ({}), onEd
     render();
 }
 
-function controls(step, item, draft) {
+function controls(step, item, draft, seed) {
     const disabled = item.ok ? 'disabled' : '';
+    const shown = list => seededShuffle(list, `${seed}:shown`);
     if (step.type === 'order') {
         const labels = Object.fromEntries(step.choices);
         return `<p class="instruction" id="order-help">拖曳整張卡片，直接放到目標位置。鍵盤：Tab 選卡，↑↓ 移動，Home／End 移到首尾。</p>
@@ -160,7 +168,7 @@ function controls(step, item, draft) {
     if (step.type === 'choice' || step.type === 'multi') {
         const multi = step.type === 'multi';
         const selected = item.ok ? item.answer : draft.answer ?? item.answer;
-        return `<p class="instruction">${multi ? '可以選多項，選好後一起確認。' : '選一個答案，再按確認；確認前都可以改。'}</p><div class="choices">${step.choices.map(([id, label]) => {
+        return `<p class="instruction">${multi ? '可以選多項，選好後一起確認。' : '選一個答案，再按確認；確認前都可以改。'}</p><div class="choices">${shown(step.choices).map(([id, label]) => {
             const active = multi ? selected?.includes(id) : selected === id;
             return `<button data-pick="${esc(id)}" aria-pressed="${!!active}" class="${active ? 'selected' : ''}" ${disabled}>${esc(label)}</button>`;
         }).join('')}</div><button id="confirm" class="primary" ${disabled}>${multi ? '確認判斷' : '確認答案'}</button>`;
@@ -168,7 +176,7 @@ function controls(step, item, draft) {
     if (step.type === 'match') {
         const bins = step.bins || DEFAULT_BINS;
         return `${step.machine ? '<div id="machine-demo"></div>' : ''}
-        <p class="instruction">每一項點一下合適的選項，全部選好再確認；確認前都可以改。</p><div class="assignment">${step.choices.map(([id, label]) =>
+        <p class="instruction">每一項點一下合適的選項，全部選好再確認；確認前都可以改。</p><div class="assignment">${shown(step.choices).map(([id, label]) =>
             `<fieldset><legend>${esc(label)}</legend>${bins.map(([bin, binLabel]) => `<button data-job="${esc(id)}" data-bin="${esc(bin)}"
             aria-pressed="${draft.answer[id] === bin}" class="${draft.answer[id] === bin ? 'selected' : ''}" ${disabled}>${esc(binLabel)}</button>`).join('')}</fieldset>`).join('')}</div>
             <button id="confirm" class="primary" ${disabled}>確認分類</button>`;
@@ -176,7 +184,7 @@ function controls(step, item, draft) {
     if (step.type === 'path') {
         const labels = Object.fromEntries(step.nodes.map(([id, label]) => [id, label]));
         return `<p class="instruction">依資料經過的順序點選；點錯可以「退一步」。</p>
-        <div class="path-nodes">${step.nodes.map(([id, label, note]) => `<button type="button" data-node="${esc(id)}" ${disabled}>
+        <div class="path-nodes">${shown(step.nodes).map(([id, label, note]) => `<button type="button" data-node="${esc(id)}" ${disabled}>
             <b>${esc(label)}</b><small>${esc(note)}</small></button>`).join('')}</div>
         <p class="path-line" role="status" aria-live="polite">${draft.answer.length ? draft.answer.map(id => esc(labels[id])).join(' → ') : '還沒選任何一站。'}</p>
         <div class="path-tools"><button type="button" class="text-button" data-path="undo" ${disabled}>退一步</button>
@@ -328,7 +336,7 @@ export function renderLearning({record, actor, send, canEdit}) {
             <div class="next"><button id="reveal" class="primary">換我動手試試 →</button></div>`;
         } else {
             html += `<details class="clue-review"><summary>回看故事與示例</summary><p>${esc(lesson[0])}</p><p>${esc(lesson[1])}</p><p>${esc(lesson[2])}</p></details>
-            ${evidence(step)}<p class="prompt">${esc(step.prompt)}</p>${controls(step, item, draft)}`;
+            ${evidence(step)}<p class="prompt">${esc(step.prompt)}</p>${controls(step, item, draft, `${state.attemptId}:${step.id}`)}`;
             if (item.ok) html += `<section class="feedback correct" role="status"><b>線索解開了</b><p>${esc(lesson[1])}</p>
                 <p class="narrative">${esc(lesson[3])}</p></section>`;
             else if (item.submissions) html += `<section class="feedback wrong" role="status"><b>還有一處需要核對</b><p>${esc(lesson[1])}</p><p>回看示例再試一次，訂正仍可得完整分數。</p></section>`;
