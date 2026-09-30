@@ -357,7 +357,7 @@ export function renderLearning({record, actor, send, canEdit}) {
     if (!record?.state) {
         $('#app').innerHTML = `<section class="panel intro">${art()}<p class="eyebrow">一本可以親手解開的故事</p><h1>天機城失控案</h1>
         <p class="narrative">走進九個篇章，讀一段遭遇，學一個概念，再親手修復一處故障。</p>
-        <p>線索可以隨時回看；嘗試與訂正都是調查的一部分。</p><button id="start" class="primary">翻開第一頁 →</button></section>`;
+        <p>線索可以隨時回看。單選與多選每次答錯扣 1 分；提示與其他題型訂正不扣分。完成全部任務即可通關，總分最低為 0 分。</p><button id="start" class="primary">翻開第一頁 →</button></section>`;
         $('#start').onclick = () => send('start');
         fillImages();
         return;
@@ -371,7 +371,7 @@ export function renderLearning({record, actor, send, canEdit}) {
     const rerender = () => { save(); renderLearning({record, actor, send, canEdit}); };
     const ready = !task(step) || item.ok;
     const phase = item.ok ? 2 : draft.phase;
-    let html = `<section class="progress"><div><b>${esc(chapter.title)}</b><span>第 ${state.step + 1}／${STEPS.length} 步</span><span>${record.metrics.score}／100</span></div>
+    let html = `<section class="progress"><div><b>${esc(chapter.title)}</b><span>第 ${state.step + 1}／${STEPS.length} 步</span><span>${record.metrics.score}／100</span><span>累計扣 ${record.metrics.choicePenalty ?? 0} 分</span></div>
     <div class="bar"><i style="width:${record.metrics.progress}%"></i></div></section>
     <nav class="review"><label>重讀卷宗<select id="step-select">${STEPS.slice(0, state.maxStep + 1).map((entry, index) =>
         `<option value="${index}" ${index === state.step ? 'selected' : ''}>${index + 1}·${esc(entry.title)}</option>`).join('')}</select></label></nav>
@@ -385,6 +385,9 @@ export function renderLearning({record, actor, send, canEdit}) {
     } else if (task(step)) {
         html += `<ol class="reading-phases" aria-label="學習節奏">${['讀情境', '動手試', '解開線索'].map((label, index) =>
             `<li ${phase === index ? 'aria-current="step"' : ''}>${label}</li>`).join('')}</ol>`;
+        if (['choice', 'multi'].includes(step.type) && !item.ok) {
+            html += '<p class="note" role="note">作答提醒：每次送出錯誤答案扣 1 分，答對後仍保留扣分；提示不扣分。</p>';
+        }
         if (phase === 0) {
             html += `<p class="narrative">${esc(lesson[0])}</p><aside class="truth"><b>這次只學一件事</b><p>${esc(lesson[1])}</p></aside>
             <div class="worked-example"><b>跟著師父看一次</b><p>${esc(lesson[2])}</p></div>
@@ -394,7 +397,7 @@ export function renderLearning({record, actor, send, canEdit}) {
             ${evidence(step)}<p class="prompt">${esc(step.prompt)}</p>${controls(step, item, draft, `${state.attemptId}:${step.id}`)}`;
             if (item.ok) html += `<section class="feedback correct" role="status"><b>線索解開了</b><p>${esc(lesson[1])}</p>
                 <p class="narrative">${esc(lesson[3])}</p></section>`;
-            else if (item.submissions) html += `<section class="feedback wrong" role="status"><b>還有一處需要核對</b><p>${esc(lesson[1])}</p><p>回看示例再試一次，訂正仍可得完整分數。</p></section>`;
+            else if (item.submissions) html += `<section class="feedback wrong" role="status"><b>還有一處需要核對</b><p>${esc(lesson[1])}</p><p>${['choice', 'multi'].includes(step.type) ? `本題因錯答累計扣 ${item.choicePenalty || 0} 分。回看示例再試一次；每次再答錯會再扣 1 分。` : '回看示例再試一次，這個題型訂正不扣分。'}</p></section>`;
             if (!item.ok && step.hints?.length) html += `<div class="hint"><button id="hint" class="text-button" ${item.hints >= step.hints.length ? 'disabled' : ''}>請師父再提示一步</button>
                 ${item.hints ? `<p>${esc(step.hints[Math.min(item.hints, step.hints.length) - 1])}</p>` : ''}</div>`;
         }
@@ -410,7 +413,7 @@ export function renderLearning({record, actor, send, canEdit}) {
         html += '<div class="next"><button id="next" class="primary">翻開下一頁 →</button></div>';
     }
     html += `</article><details class="record"><summary>我的調查紀錄 · ${record.metrics.tasksDone}／${record.metrics.taskTotal} 項線索</summary>
-        <p>已得 ${record.metrics.score} 分，${record.metrics.seals}／9 枚道印。提示、訂正與作答速度不扣分。</p></details>`;
+        <p>已得 ${record.metrics.score} 分，${record.metrics.seals}／9 枚道印。單選與多選答錯累計扣 ${record.metrics.choicePenalty ?? 0} 分；提示、其他題型訂正與作答速度不扣分。完成全部任務即可通關，總分最低為 0 分。更新前的錯答不追扣。</p></details>`;
     $('#app').innerHTML = html;
     fillImages();
     $('#step-select').onchange = event => { if (canEdit()) send('navigate', null, Number(event.target.value)); };
@@ -499,3 +502,4 @@ export function renderLearning({record, actor, send, canEdit}) {
         requestAnimationFrame(() => { window.scrollTo(0, 0); $('#step-heading')?.focus({preventScroll: true}); });
     }
 }
+

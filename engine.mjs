@@ -10,10 +10,15 @@ const answerState = (state, step) => state.answers[step.id] ||= {submissions: 0,
 
 export const cultivationScore = state => {
     const done = TASKS.filter(step => state.answers[step.id]?.ok);
+    const earnedScore = done.reduce((sum, step) => sum + step.points, 0);
+    const choicePenalty = TASKS.filter(step => ['choice', 'multi'].includes(step.type))
+        .reduce((sum, step) => sum + (state.answers[step.id]?.choicePenalty || 0), 0);
     const seals = CHAPTERS.filter((_, chapter) => STEPS.filter(step => step.chapter === chapter && isTask(step))
         .every(step => state.answers[step.id]?.ok)).length;
     return {
-        score: done.reduce((sum, step) => sum + step.points, 0),
+        score: Math.max(0, earnedScore - choicePenalty),
+        earnedScore,
+        choicePenalty,
         maxScore: TOTAL_POINTS,
         tasksDone: done.length,
         taskTotal: TASKS.length,
@@ -65,7 +70,11 @@ export const createEngine = storageKey => {
                         item.answer = value;
                         item.submissions += 1;
                         item.ok = correctAnswer(step, value);
-                        if (!item.ok) item.wrong += 1;
+                        if (!item.ok) {
+                            item.wrong += 1;
+                            // Count only new accepted wrong submissions; historical wrong answers stay uncharged.
+                            if (['choice', 'multi'].includes(step.type)) item.choicePenalty = (item.choicePenalty || 0) + 1;
+                        }
                         else item.solvedMs = Date.now();
                     }
                 } else if (kind === 'hint') {
@@ -78,7 +87,7 @@ export const createEngine = storageKey => {
                     }
                     state.step += 1;
                 } else if (kind === 'finish') {
-                    if (value !== null || state.step !== STEPS.length - 1 || cultivationScore(state).score !== TOTAL_POINTS) {
+                    if (value !== null || state.step !== STEPS.length - 1 || cultivationScore(state).tasksDone !== TASKS.length) {
                         fail('CULTIVATION_STEP_LOCKED');
                     }
                     state.completed = true;
@@ -92,3 +101,4 @@ export const createEngine = storageKey => {
         }
     };
 };
+
