@@ -1,0 +1,22 @@
+/* Activity 45: readable status labels and selectable investigation notes. */
+.log-intro { margin: 14px 0; padding: 16px 18px; border: 1px solid #546879; border-radius: 12px; background: #14222e; font-size: 1rem; line-height: 1.75; }
+.log-intro h2 { margin: 0 0 8px; font-size: 1.12rem; }
+.log-intro p { margin: 8px 0; }
+.log-intro ul { margin: 8px 0; padding-left: 1.3em; }
+.log-warning-key { color: #ffb9ae; }
+.syslog.log-guide { margin: 14px 0; padding: 0; border: 0; background: transparent; font-family: inherit; white-space: normal; }
+.syslog.log-guide li { margin: 10px 0; }
+.syslog.log-guide button { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; width: 100%; padding: 12px 14px; min-height: 44px; border: 1px solid #566779; border-left: 5px solid #8699ad; border-radius: 9px; background: #14202c; color: #e5edf7; white-space: normal; font: inherit; font-size: 1rem; line-height: 1.65; }
+.syslog.log-guide button.log-warn, .syslog.log-guide button.log-alert { border-color: #dd837a; border-left-color: #ff9c90; background: #382027; color: #ffe1dc; }
+.syslog.log-guide .log-level { color: inherit; }
+.syslog.log-guide .log-level small { font-size: .85em; font-weight: 500; }
+.syslog.log-guide .log-time { font-weight: 800; font-variant-numeric: tabular-nums; }
+.syslog.log-guide .log-message { grid-column: 1 / -1; overflow-wrap: anywhere; white-space: pre-wrap; }
+.syslog.log-guide .log-mark { align-self: start; font-size: .82em; color: #ead6a5; }
+.syslog.log-guide button.marked { outline: 3px solid #e9bd62; outline-offset: 2px; }
+.syslog.log-guide button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+@media (max-width: 520px) {
+  .log-intro { padding: 12px; }
+  .syslog.log-guide button { grid-template-columns: auto 1fr; gap: 4px 9px; padding: 11px; }
+  .syslog.log-guide .log-mark { grid-column: 1 / -1; grid-row: 3; }
+}

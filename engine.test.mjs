@@ -45,7 +45,7 @@ test('public sorting and matching corrections are free', () => {
         assert.equal(solved.metrics.score, solved.metrics.earnedScore);
     }
 });
-test('public completion uses completed tasks and preserves a zero floor even after 101 errors', () => {
+test('public completion caps 101 wrong answers at the task points and preserves raw history', () => {
     const app = create();
     event(app, 'start');
     let charged = false;
@@ -58,9 +58,10 @@ test('public completion uses completed tasks and preserves a zero floor even aft
         if (step.type === 'final') event(app, 'finish');
         else event(app, 'next');
     }
-    assert.equal(app.mine().metrics.score, 0);
+    assert.equal(app.mine().metrics.score, 97);
     assert.equal(app.mine().metrics.earnedScore, 100);
-    assert.equal(app.mine().metrics.choicePenalty, 101);
+    assert.equal(app.mine().metrics.choicePenalty, 3);
+    assert.equal(app.mine().state.answers[TASKS.find(step => step.type === 'choice').id].choicePenalty, 101);
     assert.equal(app.mine().metrics.completed, true);
 });
 test('public completed pre-update grade and progress survive upgrading the rule', () => {
@@ -74,4 +75,32 @@ test('public completed pre-update grade and progress survive upgrading the rule'
     assert.equal(loaded.metrics.score, 100);
     assert.equal(loaded.metrics.choicePenalty, 0);
     assert.deepEqual(loaded.metrics, cultivationScore(state));
+});
+
+for (const type of ['choice', 'multi']) {
+    test(`public ${type}: cap, old raw history, correction and persisted reload`, () => {
+        const key = `cap-${type}`;
+        const app = createEngine(key);
+        const step = TASKS.find(entry => entry.type === type);
+        reach(app, step.id);
+        const wrong = type === 'choice' ? step.choices.find(([id]) => id !== step.answer)[0] : [];
+        for (let i = 0; i < 17; i++) event(app, 'submit', wrong);
+        assert.equal(app.mine().metrics.choicePenalty, step.points);
+        assert.equal(app.mine().state.answers[step.id].choicePenalty, 17);
+        const stored = values.get(key);
+        assert.equal(createEngine(key).mine().metrics.choicePenalty, step.points);
+        assert.equal(values.get(key), stored);
+        event(app, 'submit', step.answer);
+        assert.equal(createEngine(key).mine().metrics.choicePenalty, step.points);
+        assert.equal(createEngine(key).mine().state.answers[step.id].choicePenalty, 17);
+    });
+}
+test('legacy over-cap completed public record is recalculated without storage changes', () => {
+    const state = {version: COURSE_VERSION, attemptId: 'old-over-cap', step: 46, maxStep: 46, completed: true,
+        answers: Object.fromEntries(TASKS.map(step => [step.id, {ok: true, wrong: 0, hints: 0}]))};
+    state.answers['os-jobs'] = {ok: true, wrong: 17, choicePenalty: 17};
+    const saved = JSON.stringify({revision: 99, state, updatedMs: 10});
+    values.set('old-over-cap', saved);
+    assert.equal(createEngine('old-over-cap').mine().metrics.score, 97);
+    assert.equal(values.get('old-over-cap'), saved);
 });
